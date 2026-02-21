@@ -1,23 +1,25 @@
 # excel-sql-skill
 
-An [OpenClaw](https://github.com/openclaw) skill that lets Claude Code query and edit **live Excel files** using SQL.
+A skill that lets Claude Code query and edit **live Excel files** using SQL.
 
 Uses **xlwings** (Excel process control) + **pandasql** (in-memory SQL) — no intermediate database files.
 
 ## Why?
 
-Game designers and planners manage balancing data in Excel. This skill lets an AI assistant:
+When working with large Excel datasets, loading the whole file into context is wasteful and slow. This skill lets Claude Code:
 - **Read** data with SQL queries (`SELECT * FROM Monsters WHERE hp > 1000`)
 - **Write** changes back to the open Excel file (`UPDATE Monsters SET damage = damage * 1.2`)
-- Excel **auto-recalculates** formulas — the planner sees results in real-time
+- Excel **auto-recalculates** formulas — you see results in real-time
 
 ## Install
 
-### 1. Install as OpenClaw skill
+### 1. Install the skill
 
 ```bash
-openclaw skill install github:yulcat/excel-sql-skill
+npx skills add github:yulcat/excel-sql-skill
 ```
+
+Or clone manually into your project's `skills/` folder.
 
 ### 2. Install Python dependencies
 
@@ -35,7 +37,7 @@ The target Excel file must be open in Excel before attaching.
 |----------|-----------|-------|
 | Windows  | ✅ Full   | COM automation, real-time cell updates |
 | macOS    | ✅ Works  | AppleScript bridge, may need manual save |
-| Linux    | ❌ No     | No Excel desktop app (use on Windows/Mac nodes) |
+| Linux    | ❌ No     | No Excel desktop app |
 
 ## Usage
 

@@ -1,8 +1,6 @@
 ---
 name: excel-sql-skill
-description: "Query and edit live Excel files using SQL via xlwings + pandasql. Use when: working with large Excel datasets that need SQL-style queries, game balancing data, financial models with formulas. Requires Excel to be installed and open on a paired Windows/Mac node."
-metadata:
-  { "openclaw": { "emoji": "📊", "requires": { "anyBins": ["python3", "python"] } } }
+description: "Query and edit live Excel files using SQL via xlwings + pandasql. Use when: working with large Excel datasets that need SQL-style queries, game balancing data, financial models with formulas. Requires Excel to be installed and open."
 ---
 
 # Excel SQL Skill
