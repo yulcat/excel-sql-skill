@@ -37,9 +37,9 @@ _wb = None          # xlwings Workbook reference
 _frames = {}        # sheet_name -> DataFrame
 
 
-def _save_state(wb_name: str):
+def _save_state(wb_name: str, header_row: int = DEFAULT_HEADER_ROW):
     """Save minimal state so subsequent CLI calls can re-attach."""
-    STATE_FILE.write_text(json.dumps({"workbook": wb_name}))
+    STATE_FILE.write_text(json.dumps({"workbook": wb_name, "header_row": header_row}))
 
 
 def _load_state() -> dict:
@@ -52,8 +52,17 @@ def _load_state() -> dict:
 # Core functions
 # ---------------------------------------------------------------------------
 
-def attach(workbook_name: str | None = None) -> str:
-    """Attach to an open Excel workbook and load all sheets."""
+DEFAULT_HEADER_ROW = 3  # Default: row 3 is the header (rows 1-2 are type/meta info)
+
+
+def attach(workbook_name: str | None = None, header_row: int = DEFAULT_HEADER_ROW) -> str:
+    """Attach to an open Excel workbook and load all sheets.
+
+    Args:
+        workbook_name: Name of the workbook to attach to (or None for active workbook).
+        header_row: 1-indexed row number to use as column headers (default: 3).
+                    Rows before the header row are skipped.
+    """
     global _wb, _frames
 
     if xw is None:
@@ -73,25 +82,37 @@ def attach(workbook_name: str | None = None) -> str:
     _frames.clear()
     for sheet in _wb.sheets:
         name = sheet.name
-        # Read used range into DataFrame
-        data = sheet.used_range.options(pd.DataFrame, header=True, index=False).value
-        if data is not None and not data.empty:
-            # Sanitize column names
-            data.columns = [str(c).strip() for c in data.columns]
-            _frames[name] = data
+        # Read all data as raw values first (no header assumption)
+        raw = sheet.used_range.options(pd.DataFrame, header=False, index=False).value
+        if raw is None or raw.empty:
+            continue
 
-    _save_state(_wb.name)
+        # Use specified header_row (1-indexed → 0-indexed)
+        h = header_row - 1
+        if h >= len(raw):
+            continue
+
+        headers = [str(c).strip() if c is not None else f"col_{i}"
+                   for i, c in enumerate(raw.iloc[h])]
+        data = raw.iloc[h + 1:].copy()
+        data.columns = headers
+        data = data.reset_index(drop=True)
+
+        _frames[name] = data
+
+    _save_state(_wb.name, header_row)
     sheets_info = ", ".join(f"{k} ({len(v)} rows)" for k, v in _frames.items())
-    return f"Attached to '{_wb.name}'. Sheets: {sheets_info}"
+    return f"Attached to '{_wb.name}' (header row={header_row}). Sheets: {sheets_info}"
 
 
-def reload() -> str:
+def reload(header_row: int | None = None) -> str:
     """Reload sheets from the currently attached workbook."""
     state = _load_state()
     wb_name = state.get("workbook")
     if not wb_name:
         return "ERROR: No workbook attached. Run: attach [name]"
-    return attach(wb_name)
+    hr = header_row if header_row is not None else state.get("header_row", DEFAULT_HEADER_ROW)
+    return attach(wb_name, header_row=hr)
 
 
 def list_sheets() -> str:
@@ -376,8 +397,12 @@ def main():
 
     p_attach = sub.add_parser("attach", help="Attach to an open Excel workbook")
     p_attach.add_argument("workbook", nargs="?", default=None)
+    p_attach.add_argument("--header-row", type=int, default=DEFAULT_HEADER_ROW,
+                          help=f"Row number (1-indexed) to use as column headers (default: {DEFAULT_HEADER_ROW})")
 
-    sub.add_parser("reload", help="Reload sheets from attached workbook")
+    p_reload = sub.add_parser("reload", help="Reload sheets from attached workbook")
+    p_reload.add_argument("--header-row", type=int, default=None,
+                          help="Override header row (default: use value from last attach)")
     sub.add_parser("sheets", help="List loaded sheets")
 
     p_schema = sub.add_parser("schema", help="Show schema for sheet(s)")
@@ -392,9 +417,9 @@ def main():
     args = parser.parse_args()
 
     if args.command == "attach":
-        print(attach(args.workbook))
+        print(attach(args.workbook, header_row=args.header_row))
     elif args.command == "reload":
-        print(reload())
+        print(reload(header_row=args.header_row))
     elif args.command == "sheets":
         print(list_sheets())
     elif args.command == "schema":

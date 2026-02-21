@@ -28,11 +28,21 @@ python scripts/excel_sql.py
 
 ### Attach to an open Excel workbook
 
-```python
+```bash
+# Default: row 3 is the header (rows 1-2 are type/meta info — common in game data sheets)
 python scripts/excel_sql.py attach "Book1.xlsx"
-# or attach to the active workbook:
+
+# Attach to the active workbook
 python scripts/excel_sql.py attach
+
+# Override header row if your sheet is different
+python scripts/excel_sql.py attach "Book1.xlsx" --header-row 1
+
+# Reload with a different header row
+python scripts/excel_sql.py reload --header-row 2
 ```
+
+> **Note:** The default header row is **3**. This matches the common game data sheet format where rows 1–2 contain type annotations and metadata, and row 3 has the actual column names. Pass `--header-row N` to override.
 
 ### Query a sheet with SQL
 
