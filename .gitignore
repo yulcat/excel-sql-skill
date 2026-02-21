@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.excel_sql_state.json
+*.egg-info/
+dist/
+build/
+.venv/
